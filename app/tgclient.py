@@ -59,13 +59,13 @@ async def handle_new_message(event):
             try:
                 nodes, counts = text_processor(res)
                 print(f"Writing {counts} nodes into file...")
-                filename='nodes.txt'
+                filename='data/nodes.txt'
                 with open(filename, 'w') as f:
                   f.write(nodes)
                 lastupdate=time.time()
                 # ftime=formattime(lastupdate)
-                await client.send_file(entity=jt_bot,file=filename)
-                print('File Sent.')
+                # await client.send_file(entity=jt_bot,file=filename)
+                print('Nodes file saved')
             except BaseException as e:
                 # 向目标用户发送消息
                 await client.send_message(entity=me, message=f'Error: {e}')

@@ -4,10 +4,14 @@ import time
 import os
 import re
 from packs import *
+import asyncio
+from datetime import datetime
 
 api_id = os.environ['API_ID']
 api_hash = os.environ['API_HASH']
 phone_number = os.environ['PHONE']
+ltime=''
+cronflag = False
 
 def get_code():
     total=60
@@ -20,6 +24,25 @@ def get_code():
         time.sleep(2)
         total -=2
     return '-1'
+
+def replace_last_line(file_name, diff):
+    lines = []
+    with open(file_name, 'r') as file:
+        lines = file.readlines()
+
+    addtext=f'{str(datetime.now())} Checking update interval: {diff} \n'
+    
+    # 检查最后一行的内容
+    if 'Checking update interval' in lines[-1]:
+        lines[-1] = addtext
+        # 将结果写回文件
+        with open(file_name, 'w') as file:
+            file.writelines(lines)
+    else:
+        with open(file_name, 'a') as file:
+            file.write(addtext)
+
+    
 
 #login appbot
 print('Client connecting...')
@@ -41,7 +64,14 @@ if not client.is_user_authorized():
         print(f'Login failed: {e}')
         exit()
 
-print('Login success.')
+if client.is_user_authorized():
+    with open('code.txt','w') as f:
+        f.write('')
+    print('Login success.')
+else:
+    print(f'Login failed: {e}')
+    exit()
+
 me = client.get_me()
 bll_bot = client.get_entity('freenodeshare_bot')
 jt_bot = client.get_entity('jttest1st_bot')
@@ -50,7 +80,7 @@ jt_bot = client.get_entity('jttest1st_bot')
 @client.on(events.NewMessage(chats=[bll_bot]))
 async def handle_new_message(event):
     # 检查消息是否来自目标用户
-    global lastupdate
+    global ltime
     if event.is_private and isinstance(event.peer_id, PeerUser) and event.peer_id.user_id == bll_bot.id:
         # 打印目标用户的回复消息
         res = event.text
@@ -61,15 +91,12 @@ async def handle_new_message(event):
                 print(f"Writing {counts} nodes into file...")
                 filename='data/nodes.txt'
                 with open(filename, 'w') as f:
-                  f.write(nodes)
-                lastupdate=time.time()
-                # ftime=formattime(lastupdate)
-                # await client.send_file(entity=jt_bot,file=filename)
+                    f.write(nodes)
                 print('Nodes file saved')
             except BaseException as e:
                 # 向目标用户发送消息
                 await client.send_message(entity=me, message=f'Error: {e}')
-    print("Listening to freenodeshare_bot...")
+
     
 @client.on(events.NewMessage(chats=[jt_bot]))
 async def handle_new_message1(event):
@@ -88,7 +115,58 @@ async def handle_new_message1(event):
         except BaseException as e:
             # 向目标用户发送消息
             await client.send_message(entity=me, message=f'Error: {e}')
-    
+
+@client.on(events.NewMessage(chats=[bll_bot]))
+async def timeupdate_command(event):
+    global ltime
+    match = re.search(r'\d{2}:\d{2}:\d{2}',event.text)
+    if event.peer_id.user_id == bll_bot.id:
+        if match:
+            time_str = match.group(0)
+            
+            tmp = datetime.strptime(time_str, '%H:%M:%S').time()
+            ltime = datetime.combine(datetime.today(), tmp)
+            # ltime = newtmp.timestamp()
+            # ltime=newtmp
+            newtmp_str=str(ltime)
+            with open('data/logs.txt','a') as f:
+                f.write(f'{newtmp_str} Nodes Updated.\n')
+
+
+@client.on(events.NewMessage(pattern='/loopon'))
+async def start_command(event):
+    global cronflag,ltime
+    if event.peer_id.user_id == me.id:
+        cronflag = True
+        await client.send_message(entity=bll_bot, message='/get')
+        testtmp=datetime.now()
+        while type(ltime) != type(testtmp):
+            await asyncio.sleep(5)
+        
+        with open('data/logs.txt','a') as f:
+            f.write(f'{testtmp}: Update loop ON\n')
+        await client.send_message(entity=me, message='From ClientBot: Auto-Update on!')
+        
+        while cronflag:
+            now = datetime.now()
+            diff = (now -ltime).total_seconds()
+            replace_last_line('data/logs.txt',diff)
+            if diff > 1800:
+                await client.send_message(entity=bll_bot, message='/get')
+            await asyncio.sleep(60)  # 每60秒检查一次时间差
+        
+        with open('data/logs.txt','a') as f:
+            f.write(f'{testtmp}: Update loop OFF\n')
+        await client.send_message(entity=me, message='From ClientBot: Auto-Update OFF!')
+
+
+@client.on(events.NewMessage(pattern='/loopoff'))
+async def stop_command(event):
+    global cronflag
+    if event.peer_id.user_id == me.id:
+        cronflag = False
+
+
 
 client.run_until_disconnected()
 

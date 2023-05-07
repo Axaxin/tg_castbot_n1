@@ -66,7 +66,8 @@ def handle_normal(node):
     # res['ps'] = res['ps'].replace('(Youtube:不良林)', '')
     res['ps'] = res['ps'].split('(')[0]
     
-    text_bytes = str(res).encode('utf-8')
+    newraw=json.dumps(res)
+    text_bytes = newraw.encode('utf-8')
     encoded_bytes = base64.b64encode(text_bytes)
     encoded_text = encoded_bytes.decode('utf-8')
 

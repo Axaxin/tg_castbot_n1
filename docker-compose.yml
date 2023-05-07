@@ -2,32 +2,35 @@ version: '3'
 services:
 
   tgbot:
-    image: 'tgnode_env_v1'
+    image: 'tgbot_env_v1'
     container_name: tgbot
     restart: unless-stopped
     volumes:
       - ./app:/app
     environment:
-      - BOT_TOKEN=#
+      - BOT_TOKEN=${BOT_TOKEN}
     network_mode: bridge
     command: ["tgbot.py"]
 
   tgclient:
-    image: 'tgnode_env_v1'
+    image: 'tgbot_env_v1'
     container_name: tgclient
     volumes:
       - ./app:/app
     environment:
-      - API_ID=#
-      - API_HASH=#
-      - PHONE=#
+      - API_ID=${API_ID}
+      - API_HASH=${API_HASH}
+      - PHONE=${PHONE}
+      - TZ=Asia/Shanghai
     restart: unless-stopped
     network_mode: bridge
     command: ["tgclient.py"]
   
   tgflask:
-    image: 'tgnode_env_v1'
+    image: 'tgbot_env_v1'
     container_name: tgflask
+    ports:
+      - 8081:8080
     volumes:
       - ./app:/app
     restart: unless-stopped

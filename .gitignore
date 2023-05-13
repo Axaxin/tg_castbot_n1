@@ -1,0 +1,5 @@
+.env
+app/data/*.txt
+app/code.txt
+app/*.session
+app/__pycache__

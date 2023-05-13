@@ -5,7 +5,7 @@ import os
 import re
 from packs import *
 import asyncio
-from datetime import datetime
+from datetime import datetime,timedelta
 
 api_id = os.environ['API_ID']
 api_hash = os.environ['API_HASH']
@@ -126,8 +126,10 @@ async def timeupdate_command(event):
             
             tmp = datetime.strptime(time_str, '%H:%M:%S').time()
             ltime = datetime.combine(datetime.today(), tmp)
-            # ltime = newtmp.timestamp()
-            # ltime=newtmp
+            now = datetime.now()
+            if ltime > now:
+                ltime = ltime-timedelta(days=1)
+
             newtmp_str=str(ltime)
             with open('data/logs.txt','a') as f:
                 f.write(f'{newtmp_str} Nodes Updated.\n')
@@ -151,10 +153,16 @@ async def start_command(event):
             now = datetime.now()
             diff = (now -ltime).total_seconds()
             replace_last_line('data/logs.txt',diff)
-            if diff > 1800:
+            if diff < 1800:
+                await asyncio.sleep(1800-diff+10)
+            elif diff > 1800 and diff < 1920:
                 await client.send_message(entity=bll_bot, message='/get')
-            await asyncio.sleep(60)  # 每60秒检查一次时间差
-        
+                await asyncio.sleep(60)
+            else:
+                await asyncio.sleep(600)
+                await client.send_message(entity=bll_bot, message='/get')
+                await asyncio.sleep(30)
+
         with open('data/logs.txt','a') as f:
             f.write(f'{testtmp}: Update loop OFF\n')
         await client.send_message(entity=me, message='From ClientBot: Auto-Update OFF!')
